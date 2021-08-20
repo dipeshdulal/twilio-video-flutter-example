@@ -1,10 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:twilio_programmable_video/twilio_programmable_video.dart';
-
-const accessKey =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImN0eSI6InR3aWxpby1mcGE7dj0xIn0.eyJqdGkiOiJTSzIwM2M5NmFhYmNmNjQ1OTUwOTJlYWNiZWY2NzBlODQ0LTE2Mjk0NjA0NDUiLCJncmFudHMiOnsiaWRlbnRpdHkiOiJEaXBlc2giLCJ2aWRlbyI6e319LCJpYXQiOjE2Mjk0NjA0NDUsImV4cCI6MTYyOTQ2NDA0NSwiaXNzIjoiU0syMDNjOTZhYWJjZjY0NTk1MDkyZWFjYmVmNjcwZTg0NCIsInN1YiI6IkFDNWQ0YTRkY2Y0ODI4Njg3NTNhNGVlZWE5MDYyYWI1ODQifQ.oljI1T7oP-1iAcQ2Dj23feUg-5jgiTsmZqrn2kWEjZU";
+import 'package:twilio_video_example/config.dart';
 
 class HomePage extends StatefulWidget {
   HomePage({Key? key}) : super(key: key);
@@ -29,7 +28,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   _onConnectFailure(RoomConnectFailureEvent event) {
-    print("Failed to connect to room ${event.room.name} with ");
+    print("Failed to connect to room ${event.room.name} ");
+    print(event.exception.toString());
     _completer.completeError(event.exception.toString());
   }
 
@@ -50,12 +50,22 @@ class _HomePageState extends State<HomePage> {
         print("connect me to a room");
         final capturer = CameraCapturer(CameraSource.FRONT_CAMERA);
         _localVideoTrack = LocalVideoTrack(true, capturer);
-        final connectOptions = ConnectOptions(accessKey,
-            roomName: "Test Room",
-            preferredAudioCodecs: [OpusCodec()],
-            preferredVideoCodecs: [H264Codec()],
-            audioTracks: [LocalAudioTrack(true, "LocalAudioTrack")],
-            videoTracks: [_localVideoTrack!]);
+
+        String accessKey = "";
+        if (Platform.isAndroid) {
+          accessKey = AppConfig.androidAccessKey;
+        }
+        if (Platform.isIOS) {
+          accessKey = AppConfig.iosAccessKey;
+        }
+
+        final connectOptions = ConnectOptions(
+          accessKey,
+          roomName: "Test Room",
+          preferredAudioCodecs: [OpusCodec()],
+          preferredVideoCodecs: [H264Codec()],
+          videoTracks: [_localVideoTrack!],
+        );
         _room = await TwilioProgrammableVideo.connect(connectOptions);
         _room?.onConnected.listen(_onConnected);
         _room?.onConnectFailure.listen(_onConnectFailure);
@@ -90,11 +100,6 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(
-              decoration: InputDecoration(
-                labelText: "Room Id",
-              ),
-            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -124,10 +129,15 @@ class _HomePageState extends State<HomePage> {
                       },
                     ),
                     Positioned(
+                      bottom: 10,
+                      right: 10,
                       child: SizedBox(
-                        height: 200,
-                        width: 200,
-                        child: _remoteParticipantWidget,
+                        height: 150,
+                        width: 150,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: _remoteParticipantWidget,
+                        ),
                       ),
                     ),
                   ],
