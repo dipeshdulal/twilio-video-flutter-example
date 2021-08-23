@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import "dart:math" as math;
 
 import 'package:flutter/material.dart';
 import 'package:twilio_programmable_video/twilio_programmable_video.dart';
@@ -16,8 +17,10 @@ class _HomePageState extends State<HomePage> {
   final Completer<Room> _completer = Completer<Room>();
   Widget? _remoteParticipantWidget;
 
-  Room? _room;
+  bool _isFrontCamera = true;
 
+  Room? _room;
+  CameraCapturer? _capturer;
   LocalVideoTrack? _localVideoTrack;
 
   _remoteVideoTrack(RemoteVideoTrackSubscriptionEvent evt) {
@@ -53,8 +56,8 @@ class _HomePageState extends State<HomePage> {
     if (_localVideoTrack == null) {
       try {
         print("connect me to a room");
-        final capturer = CameraCapturer(CameraSource.FRONT_CAMERA);
-        _localVideoTrack = LocalVideoTrack(true, capturer);
+        _capturer = CameraCapturer(CameraSource.FRONT_CAMERA);
+        _localVideoTrack = LocalVideoTrack(true, _capturer!);
 
         String accessKey = "";
         if (Platform.isAndroid) {
@@ -129,7 +132,14 @@ class _HomePageState extends State<HomePage> {
                           );
                         }
                         if (snapshot.hasData) {
-                          return Container(child: _localVideoTrack!.widget());
+                          return Container(
+                            child: Transform(
+                              alignment: Alignment.center,
+                              transform: Matrix4.rotationY(
+                                  _isFrontCamera ? math.pi : 0),
+                              child: _localVideoTrack!.widget(mirror: false),
+                            ),
+                          );
                         }
                         return Container();
                       },
@@ -143,6 +153,30 @@ class _HomePageState extends State<HomePage> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(10),
                           child: _remoteParticipantWidget,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 10,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        child: Row(
+                          children: [
+                            ElevatedButton(
+                              onPressed: () {
+                                _capturer?.switchCamera();
+                                setState(() {
+                                  _isFrontCamera = !_isFrontCamera;
+                                });
+                              },
+                              style: ElevatedButton.styleFrom(
+                                shape: CircleBorder(),
+                                padding: const EdgeInsets.all(10),
+                              ),
+                              child: Icon(Icons.switch_camera),
+                            )
+                          ],
                         ),
                       ),
                     ),
