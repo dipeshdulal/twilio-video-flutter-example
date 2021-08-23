@@ -20,9 +20,19 @@ class _HomePageState extends State<HomePage> {
 
   LocalVideoTrack? _localVideoTrack;
 
+  _remoteVideoTrack(RemoteVideoTrackSubscriptionEvent evt) {
+    setState(() {
+      _remoteParticipantWidget = evt.remoteVideoTrack.widget();
+    });
+  }
+
   _onConnected(Room? room) {
     print("Connected to ${room?.name}");
     if (room != null) {
+      if (room.remoteParticipants.length > 0) {
+        room.remoteParticipants.first.onVideoTrackSubscribed
+            .listen(_remoteVideoTrack);
+      }
       _completer.complete(room);
     }
   }
@@ -35,13 +45,8 @@ class _HomePageState extends State<HomePage> {
 
   _onParticipantConnected(RoomParticipantConnectedEvent roomEvent) {
     print("remote particiant has connected to the room");
-    roomEvent.remoteParticipant.onVideoTrackSubscribed.listen(
-      (RemoteVideoTrackSubscriptionEvent evt) {
-        setState(() {
-          _remoteParticipantWidget = evt.remoteVideoTrack.widget();
-        });
-      },
-    );
+    roomEvent.remoteParticipant.onVideoTrackSubscribed
+        .listen(_remoteVideoTrack);
   }
 
   Future<Room?> _connectToRoom() async {
@@ -65,6 +70,7 @@ class _HomePageState extends State<HomePage> {
           preferredAudioCodecs: [OpusCodec()],
           preferredVideoCodecs: [H264Codec()],
           videoTracks: [_localVideoTrack!],
+          enableAutomaticSubscription: true,
         );
         _room = await TwilioProgrammableVideo.connect(connectOptions);
         _room?.onConnected.listen(_onConnected);
