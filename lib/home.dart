@@ -18,10 +18,13 @@ class _HomePageState extends State<HomePage> {
   Widget? _remoteParticipantWidget;
 
   bool _isFrontCamera = true;
+  bool _isAudioMuted = false;
+  bool _isVideoMuted = false;
 
   Room? _room;
   CameraCapturer? _capturer;
   LocalVideoTrack? _localVideoTrack;
+  LocalAudioTrack? _localAudioTrack;
 
   _remoteVideoTrack(RemoteVideoTrackSubscriptionEvent evt) {
     setState(() {
@@ -53,11 +56,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<Room?> _connectToRoom() async {
-    if (_localVideoTrack == null) {
+    if (_localVideoTrack == null && _localVideoTrack == null) {
       try {
         print("connect me to a room");
         _capturer = CameraCapturer(CameraSource.FRONT_CAMERA);
         _localVideoTrack = LocalVideoTrack(true, _capturer!);
+        _localAudioTrack = LocalAudioTrack(true, "local-audio-trak");
 
         String accessKey = "";
         if (Platform.isAndroid) {
@@ -72,6 +76,7 @@ class _HomePageState extends State<HomePage> {
           roomName: "Test Room",
           preferredAudioCodecs: [OpusCodec()],
           preferredVideoCodecs: [H264Codec()],
+          audioTracks: [_localAudioTrack!],
           videoTracks: [_localVideoTrack!],
           enableAutomaticSubscription: true,
         );
@@ -175,6 +180,39 @@ class _HomePageState extends State<HomePage> {
                                 padding: const EdgeInsets.all(10),
                               ),
                               child: Icon(Icons.switch_camera),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                _localAudioTrack?.enable(!_isVideoMuted);
+                                setState(() {
+                                  _isAudioMuted = !_isAudioMuted;
+                                });
+                              },
+                              style: ElevatedButton.styleFrom(
+                                shape: CircleBorder(),
+                                padding: const EdgeInsets.all(10),
+                                primary:
+                                    _isAudioMuted ? Colors.red : Colors.blue,
+                              ),
+                              child: Icon(
+                                  _isAudioMuted ? Icons.mic_off : Icons.mic),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                _localVideoTrack?.enable(!_isVideoMuted);
+                                setState(() {
+                                  _isVideoMuted = !_isVideoMuted;
+                                });
+                              },
+                              style: ElevatedButton.styleFrom(
+                                shape: CircleBorder(),
+                                padding: const EdgeInsets.all(10),
+                                primary:
+                                    _isVideoMuted ? Colors.red : Colors.blue,
+                              ),
+                              child: Icon(_isVideoMuted
+                                  ? Icons.videocam_off
+                                  : Icons.videocam),
                             )
                           ],
                         ),
